@@ -1,11 +1,8 @@
 import { Response } from 'express';
 
 // Envía una respuesta exitosa
-export const sendOk = (res: Response, correlator?: string, ip?: string, message = 'OK', endpoint = '', code = 200): void => {
-  //console.log(correlator)
-  //console.log(ip)
-  //console.log(endpoint)
-  res.status(code).json({ message });
+export const sendOk = (res: any, correlator?: any, ip?: any, message: any = "OK", endpoint = "", code = 200): void => {
+  res.status(code).json(message);
 };
 
 // Envía una respuesta con parámetro incorrecto
