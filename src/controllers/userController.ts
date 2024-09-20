@@ -183,6 +183,6 @@ export const changePassword = async (req: Request, res: Response) => {
         });
     } catch (error) {
         console.error('Error al procesar la solicitud:', error);
-        sendServerError(res, undefined, ip, 'Error en el servidor', endpoint);
+        sendServerError(res, undefined, ip, 'Error en el servidor.', endpoint);
     }
 };
