@@ -33,9 +33,13 @@ export const addUser = async (req: Request, res: Response) => {
     }
 
     try {
-        const [rows] = await db.promise().query<RowDataPacket[]>('SELECT COUNT(*) as count FROM users WHERE username = ?', [username]);
-        if (rows[0].count > 0) {
+        const [usernameRows] = await db.promise().query<RowDataPacket[]>('SELECT COUNT(*) as count FROM users WHERE username = ?', [username]);
+        if (usernameRows[0].count > 0) {
             return sendConflict(res, undefined, ip, 'El nombre de usuario ya está en uso', endpoint);
+        }
+        const [emailRows] = await db.promise().query<RowDataPacket[]>('SELECT COUNT(*) as count FROM users WHERE email = ?', [email]);
+        if (emailRows[0].count > 0) {
+            return sendConflict(res, undefined, ip, 'El email ya está en uso', endpoint);
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
@@ -49,7 +53,7 @@ export const addUser = async (req: Request, res: Response) => {
         return sendServerError(res, undefined, ip, 'Error en el servidor', endpoint);
     }
 };
-
+ 
 /**
  * Login a user.
  * @route POST /api/users/login
