@@ -11,6 +11,7 @@ import { verifyToken } from '../utils/tokenDecode';
  * @group Movie
  * @param {string} title.body.required - Title of the movie
  * @param {string} description.body.required - Description of the movie
+ * @param {number} running_time.body.required - Running time of the movie
  * @param {string} genre.body.required - Genre of the movie
  * @param {string} poster_image.body.required - URL of the poster image
  * @param {string} release_date.body.required - Release date of the movie
@@ -21,7 +22,7 @@ import { verifyToken } from '../utils/tokenDecode';
  * @returns {object} 500 - Internal server error
  */
 export const addMovie = async (req: Request, res: Response) => {
-    const { title, description, genre, poster_image, release_date } = req.body;
+    const { title, description, running_time, genre, poster_image, release_date } = req.body;
     const endpoint = `${req.method} ${req.url}`;
     const ip = req.headers['x-forwarded-for'] as string || req.socket.remoteAddress || '';
 
@@ -42,7 +43,7 @@ export const addMovie = async (req: Request, res: Response) => {
             return sendUnauthorized(res, undefined, ip, 'Token inválido', endpoint);
         }
 
-        if (!title || !description || !genre || !poster_image || !release_date) {
+        if (!title || !description || !running_time || !genre || !poster_image || !release_date) {
             return sendBadParam(res, undefined, ip, 'Todos los campos son obligatorios', endpoint);
         }
 
@@ -54,8 +55,8 @@ export const addMovie = async (req: Request, res: Response) => {
         }
 
         const created_at = Math.floor(new Date().getTime() / 1000);
-        const query = 'INSERT INTO movies (title, description, genre, poster_image, release_date, created_at) VALUES (?, ?, ?, ?, ?, ?)';
-        const values = [title, description, genre, poster_image, release_date, created_at];
+        const query = 'INSERT INTO movies (title, description, running_time, genre, poster_image, release_date, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)';
+        const values = [title, description, running_time * 60, genre, poster_image, release_date, created_at];
 
         db.query<ResultSetHeader>(query, values, (err) => {
             if (err) {
@@ -66,7 +67,7 @@ export const addMovie = async (req: Request, res: Response) => {
         });
     } catch (error) {
         console.error('Error al procesar la solicitud:', error);
-        return sendUnauthorized(res, undefined, ip, 'Token inválido', endpoint);
+        return sendServerError(res, undefined, ip, 'Error en el servidor', endpoint);
     }
 };
 
@@ -162,6 +163,7 @@ export const getOneMovie = async (req: Request, res: Response) => {
  * @param {string} id.path.required - ID of the movie to be edited
  * @param {string} title.body.required - New title of the movie
  * @param {string} description.body.required - New description of the movie
+ * @param {number} running_time.body.required - Running time of the movie
  * @param {string} genre.body.required - New genre of the movie
  * @param {string} poster_image.body.required - New URL of the poster image
  * @param {string} release_date.body.required - New release date of the movie
@@ -173,7 +175,7 @@ export const getOneMovie = async (req: Request, res: Response) => {
  * @returns {object} 500 - Internal server error
  */
 export const editMovie = async (req: Request, res: Response) => {
-    const { title, description, genre, poster_image, release_date } = req.body;
+    const { title, description, running_time , genre, poster_image, release_date } = req.body;
     const endpoint = `${req.method} ${req.url}`;
     const ip = req.headers['x-forwarded-for'] as string || req.socket.remoteAddress || '';
 
@@ -199,7 +201,7 @@ export const editMovie = async (req: Request, res: Response) => {
             return sendBadParam(res, undefined, ip, 'ID de película no proporcionado', endpoint);
         }
 
-        if (!title || !description || !genre || !poster_image || !release_date) {
+        if (!title || !description || !running_time || !genre || !poster_image || !release_date) {
             return sendBadParam(res, undefined, ip, 'Todos los campos son obligatorios', endpoint);
         }
 
@@ -211,8 +213,8 @@ export const editMovie = async (req: Request, res: Response) => {
         }
 
         const created_at = Math.floor(new Date().getTime() / 1000);
-        const query = 'UPDATE movies SET title = ?, description = ?, genre = ?, poster_image = ?, release_date = ?, created_at = ? WHERE id = ?';
-        const values = [title, description, genre, poster_image, release_date, created_at, id];
+        const query = 'UPDATE movies SET title = ?, description = ?, running_time = ?, genre = ?, poster_image = ?, release_date = ?, created_at = ? WHERE id = ?';
+        const values = [title, description, running_time * 60 ,genre, poster_image, release_date, created_at, id];
 
         db.query<ResultSetHeader>(query, values, (err) => {
             if (err) {
@@ -223,7 +225,7 @@ export const editMovie = async (req: Request, res: Response) => {
         });
     } catch (error) {
         console.error('Error al procesar la solicitud:', error);
-        return sendUnauthorized(res, undefined, ip, 'Token inválido', endpoint);
+        return sendServerError(res, undefined, ip, 'Error en el servidor', endpoint);
     }
 };
 
