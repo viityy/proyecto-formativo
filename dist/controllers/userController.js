@@ -30,7 +30,7 @@ const addUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 console.error('Error al insertar el usuario:', err);
                 return res.status(500).send({ error: 'Error en la base de datos' });
             }
-            res.status(201).send({ message: 'Usuario añadido correctamente', userId: result.insertId });
+            res.status(200).send({ message: 'Usuario añadido correctamente', userId: result.insertId });
         });
     }
     catch (error) {

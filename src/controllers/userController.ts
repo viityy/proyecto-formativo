@@ -18,7 +18,7 @@ const JWT_SECRET = process.env.JWT_SECRET;
  * @param {string} password.body.required - User's password
  * @param {string} email.body.required - User's email
  * @param {string} role.body.required - Type of the user
- * @returns {object} 201 - User added successfully
+ * @returns {object} 200 - User added successfully
  * @returns {object} 400 - Bad request
  * @returns {object} 409 - Conflict, username already exists
  * @returns {object} 500 - Internal server error
@@ -48,6 +48,7 @@ export const addUser = async (req: Request, res: Response) => {
         await db.promise().query<ResultSetHeader>(query, [username, hashedPassword, email, role, created_at]);
 
         return sendOk(res, undefined, ip, { message: 'Usuario añadido correctamente' }, endpoint);
+
     } catch (error) {
         console.error('Error al procesar la solicitud:', error);
         return sendServerError(res, undefined, ip, 'Error en el servidor', endpoint);
@@ -92,6 +93,7 @@ export const loginUser = async (req: Request, res: Response) => {
 
         const token = jwt.sign({ id: user.id, username: user.username, role: user.role }, JWT_SECRET, { expiresIn: '1h' });
         return sendOk(res, undefined, ip, { message: 'Inicio de sesión exitoso', token }, endpoint);
+        
     } catch (error) {
         console.error('Error al procesar la solicitud:', error);
         return sendServerError(res, undefined, ip, 'Error en el servidor', endpoint);
@@ -140,6 +142,7 @@ export const changePassword = async (req: Request, res: Response) => {
         }
 
         return sendOk(res, undefined, ip, { message: 'Contraseña actualizada correctamente' }, endpoint);
+
     } catch (error) {
         console.error('Error al procesar la solicitud:', error);
         return sendServerError(res, undefined, ip, 'Error en el servidor', endpoint);

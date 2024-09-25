@@ -4,7 +4,6 @@ import { ResultSetHeader, RowDataPacket } from 'mysql2';
 import { sendOk, sendBadParam, sendUnauthorized, sendServerError, sendConflict } from '../utils/messages';
 import { verifyToken } from '../utils/tokenDecode';
 
-
 /**
  * Add a new movie.
  * @route POST /api/movies/add
@@ -15,7 +14,7 @@ import { verifyToken } from '../utils/tokenDecode';
  * @param {string} genre.body.required - Genre of the movie
  * @param {string} poster_image.body.required - URL of the poster image
  * @param {string} release_date.body.required - Release date of the movie
- * @returns {object} 201 - Movie added successfully
+ * @returns {object} 200 - Movie added successfully
  * @returns {object} 400 - Bad request
  * @returns {object} 409 - Conflict, movie title already exists
  * @returns {object} 401 - Unauthorized, token not provided or invalid
@@ -65,6 +64,7 @@ export const addMovie = async (req: Request, res: Response) => {
             }
             return sendOk(res, undefined, ip, { message: 'Película añadida correctamente' }, endpoint);
         });
+
     } catch (error) {
         console.error('Error al procesar la solicitud:', error);
         return sendServerError(res, undefined, ip, 'Error en el servidor', endpoint);
@@ -160,7 +160,7 @@ export const getOneMovie = async (req: Request, res: Response) => {
  * Edit one movie by ID.
  * @route PATCH /api/movies/{id}
  * @group Movie
- * @param {string} id.path.required - ID of the movie to be edited
+ * @param {number} id.path.required - ID of the movie to be edited
  * @param {string} title.body.required - New title of the movie
  * @param {string} description.body.required - New description of the movie
  * @param {number} running_time.body.required - Running time of the movie
@@ -223,6 +223,7 @@ export const editMovie = async (req: Request, res: Response) => {
             }
             return sendOk(res, undefined, ip, { message: 'Película editada correctamente' }, endpoint);
         });
+
     } catch (error) {
         console.error('Error al procesar la solicitud:', error);
         return sendServerError(res, undefined, ip, 'Error en el servidor', endpoint);
@@ -286,6 +287,7 @@ export const deleteMovie = async (req: Request, res: Response) => {
 
             return sendOk(res, undefined, ip, { message: 'Película eliminada correctamente' }, endpoint);
         });
+        
     } catch (error) {
         console.error('Error al procesar la solicitud:', error);
         return sendServerError(res, undefined, ip, 'Error en el servidor', endpoint);
