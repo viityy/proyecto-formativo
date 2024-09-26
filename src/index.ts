@@ -2,6 +2,7 @@ import express from 'express';
 import userRoutes from './routes/userRoutes';
 import movieRoutes from './routes/movieRoutes';
 import showtimeRoutes from './routes/showtimeRoutes';
+import reservationsRoutes from './routes/reservationRoutes';
 import loggerMiddleware from './middleware/loggerMiddleware';
 
 const app = express();
@@ -15,8 +16,10 @@ app.use(loggerMiddleware); // Middleware para registrar solicitudes
 app.use('/api/users', userRoutes);
 app.use('/api/movies', movieRoutes);
 app.use('/api/showtimes', showtimeRoutes);
+app.use('/api/reservations', reservationsRoutes);
 
 // Iniciar el servidor
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
+
 });

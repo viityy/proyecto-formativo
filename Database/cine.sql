@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: localhost
--- Tiempo de generación: 25-09-2024 a las 13:54:10
+-- Tiempo de generación: 26-09-2024 a las 14:29:42
 -- Versión del servidor: 10.4.28-MariaDB
--- Versión de PHP: 8.0.28
+-- Versión de PHP: 8.2.4
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -56,8 +56,7 @@ CREATE TABLE `reservations` (
   `user_id` int(11) NOT NULL,
   `showtime_id` int(11) NOT NULL,
   `seat_id` int(11) NOT NULL,
-  `reservation_date` timestamp NOT NULL DEFAULT current_timestamp(),
-  `status` enum('active','cancelled') DEFAULT 'active'
+  `reservation_date` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -115,9 +114,8 @@ CREATE TABLE `showtimes` (
 --
 
 INSERT INTO `showtimes` (`id`, `movie_id`, `room_id`, `showtime_init`, `showtime_end`, `available_seats`, `total_seats`, `created_at`) VALUES
-(18, 6, 1, 1800000000, 1800008640, 100, 100, 1727261590),
-(19, 6, 1, 1800015000, 1800023640, 100, 100, 1727261596),
-(20, 6, 1, 1800030000, 1800038640, 100, 100, 1727261601);
+(22, 6, 1, 1900008640, 1900017280, 100, 100, 1727336978),
+(23, 6, 1, 1900017280, 1900025920, 100, 100, 1727337006);
 
 -- --------------------------------------------------------
 
@@ -198,7 +196,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT de la tabla `movies`
 --
 ALTER TABLE `movies`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT de la tabla `reservations`
@@ -222,7 +220,7 @@ ALTER TABLE `seats`
 -- AUTO_INCREMENT de la tabla `showtimes`
 --
 ALTER TABLE `showtimes`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
 
 --
 -- AUTO_INCREMENT de la tabla `users`
