@@ -19,6 +19,7 @@ import { verifyToken } from '../utils/tokenDecode';
  * @returns {object} 409 - Conflict, movie title already exists
  * @returns {object} 401 - Unauthorized, token not provided or invalid
  * @returns {object} 500 - Internal server error
+ * @security Bearer token
  */
 export const addMovie = async (req: Request, res: Response) => {
     const { title, description, running_time, genre, poster_image, release_date } = req.body;
@@ -78,6 +79,7 @@ export const addMovie = async (req: Request, res: Response) => {
  * @returns {object} 200 - List of all movies with id and title
  * @returns {object} 401 - Unauthorized, token not provided or invalid
  * @returns {object} 500 - Internal server error
+ * @security Bearer token
  */
 export const getAllMovies = async (req: Request, res: Response) => {
     const endpoint = `${req.method} ${req.url}`;
@@ -117,6 +119,7 @@ export const getAllMovies = async (req: Request, res: Response) => {
  * @returns {object} 401 - Unauthorized, token not provided or invalid
  * @returns {object} 404 - Movie not found
  * @returns {object} 500 - Internal server error
+ * @security Bearer token
  */
 export const getOneMovie = async (req: Request, res: Response) => {
     const endpoint = `${req.method} ${req.url}`;
@@ -173,6 +176,7 @@ export const getOneMovie = async (req: Request, res: Response) => {
  * @returns {object} 401 - Unauthorized, token not provided or invalid
  * @returns {object} 404 - Movie not found
  * @returns {object} 500 - Internal server error
+ * @security Bearer token
  */
 export const editMovie = async (req: Request, res: Response) => {
     const { title, description, running_time , genre, poster_image, release_date } = req.body;
@@ -236,10 +240,11 @@ export const editMovie = async (req: Request, res: Response) => {
  * @route DELETE /api/movies/{id}
  * @group Movie
  * @param {number} id.path.required - ID of the movie to delete
- * @returns {object} 200 - Movie details
+ * @returns {object} 200 - Movie deleted successfully
  * @returns {object} 401 - Unauthorized, token not provided or invalid
  * @returns {object} 404 - Movie not found
  * @returns {object} 500 - Internal server error
+ * @security Bearer token
  */
 export const deleteMovie = async (req: Request, res: Response) => {
     const endpoint = `${req.method} ${req.url}`;
@@ -255,7 +260,7 @@ export const deleteMovie = async (req: Request, res: Response) => {
 
         if (typeof decoded === 'object' && decoded !== null) {
             if (decoded.role === 'user') {
-                return sendUnauthorized(res, undefined, ip, 'Solo los usuarios admin pueden editar películas', endpoint);
+                return sendUnauthorized(res, undefined, ip, 'Solo los usuarios admin pueden eliminar películas', endpoint);
             }
         } else {
             console.error('Decodificación fallida, no es un objeto válido.');
@@ -304,6 +309,7 @@ export const deleteMovie = async (req: Request, res: Response) => {
  * @returns {object} 401 - Unauthorized, token not provided or invalid
  * @returns {object} 404 - Movie not found
  * @returns {object} 500 - Internal server error
+ * @security Bearer token
  */
 export const getGenreMovies = async (req: Request, res: Response) => {
     const endpoint = `${req.method} ${req.url}`;

@@ -16,6 +16,7 @@ import { verifyToken } from '../utils/tokenDecode';
  * @returns {object} 409 - Conflict, showtime date conflict
  * @returns {object} 401 - Unauthorized, token not provided or invalid
  * @returns {object} 500 - Internal server error
+ * @security Bearer token
  */
 export const addShowtime = async (req: Request, res: Response) => {
     const { movie_id, room_id, showtime_init } = req.body;
@@ -141,6 +142,7 @@ export const addShowtime = async (req: Request, res: Response) => {
  * @returns {object} 200 - List of all showtimes with id and movie_id
  * @returns {object} 401 - Unauthorized, token not provided or invalid
  * @returns {object} 500 - Internal server error
+ * @security Bearer token
  */
 export const getAllShowtimes = async (req: Request, res: Response) => {
     const endpoint = `${req.method} ${req.url}`;
@@ -222,19 +224,20 @@ export const getOneShowtime = async (req: Request, res: Response) => {
 /**
  * Edit one showtime by ID.
  * @route PATCH /api/showtimes/{id}
- * @group Movie
- * @param {number} id.path.required - ID of the movie to be edited
- * @param {number} movie_id.body.required - New title of the movie
- * @param {number} room_id.body.required - New description of the movie
- * @param {number} showtime_init.body.required - Running time of the movie
+ * @group Showtime
+ * @param {number} id.path.required - ID of the showtime to be edited
+ * @param {number} movie_id.body.required - ID of the new movie
+ * @param {number} room_id.body.required - ID of the new room
+ * @param {number} showtime_init.body.required - Timestamp of the showtime start
  * @returns {object} 200 - Showtime edited successfully
  * @returns {object} 400 - Bad request, invalid input data
- * @returns {object} 409 - Conflict, showtime date conflict
  * @returns {object} 401 - Unauthorized, token not provided or invalid
- * @returns {object} 404 - Movie not found
+ * @returns {object} 404 - Movie or room not found
+ * @returns {object} 409 - Conflict, showtime overlaps with another existing showtime
  * @returns {object} 500 - Internal server error
+ * @security Bearer token
  */
-export const editShowtime = async (req: Request, res: Response) => { //HAY QUE MANEJAR QUE DEJE MODIFICAR EL SHOWTIME SI SE QUIERE PONER A LA MISMA HORA EN QUE ESTABA PUESTO, PERO SIN PISAR NINGÚN OTRO SHOWTIME
+export const editShowtime = async (req: Request, res: Response) => {
     const { movie_id, room_id, showtime_init } = req.body;
     const endpoint = `${req.method} ${req.url}`;
     const ip = req.headers['x-forwarded-for'] as string || req.socket.remoteAddress || '';
@@ -312,12 +315,18 @@ export const editShowtime = async (req: Request, res: Response) => { //HAY QUE M
         // Verifica si hay solapamiento entre los espectáculos.
         if (showtimesRows.length > 0) {
             for (let i = 0; i < showtimesRows.length; i++) {
+                const existingShowtimeId = showtimesRows[i].id;
                 const existingShowtimeInit = showtimesRows[i].showtime_init;
                 const existingShowtimeEnd = showtimesRows[i].showtime_end;
-
+        
+                // Saltar la comparación con el mismo showtime que se está editando
+                if (existingShowtimeId === parseInt(id)) {
+                    continue; // Ignorar este registro en la validación
+                }
+        
                 let conflictType = null;
-
-                // Determinamos el tipo de conflicto
+        
+                // Determinamos el tipo de conflicto solo si no es la misma hora que el showtime que ya estaba
                 if (showtime_init >= existingShowtimeInit && showtime_init < existingShowtimeEnd) {
                     conflictType = 'startOverlap'; // Nuevo inicio dentro de un espectáculo existente
                 } else if (showtime_end > existingShowtimeInit && showtime_end <= existingShowtimeEnd) {
@@ -325,7 +334,7 @@ export const editShowtime = async (req: Request, res: Response) => { //HAY QUE M
                 } else if (showtime_init <= existingShowtimeInit && showtime_end >= existingShowtimeEnd) {
                     conflictType = 'fullOverlap'; // Nuevo espectáculo abarca a uno existente
                 }
-
+        
                 // Verificamos el tipo de conflicto y enviamos el mensaje adecuado
                 switch (conflictType) {
                     case 'startOverlap':
@@ -340,8 +349,9 @@ export const editShowtime = async (req: Request, res: Response) => { //HAY QUE M
 
         // Preparación e inserción del nuevo showtime en la base de datos
         const insertShowtimeQuery = `
-            UPDATE showtimes SET (movie_id = ?, room_id = ?, showtime_init = ?, showtime_end = ?, available_seats = ?, total_seats = ?, created_at = ?) 
-            WHERE id = ?`;
+            UPDATE showtimes 
+            SET movie_id = ?, room_id = ?, showtime_init = ?, showtime_end = ?, available_seats = ?, total_seats = ?, created_at = ?
+            WHERE id = ?;`;
 
         const showtimeValues = [movie_id, room_id, showtime_init, showtime_end, available_seats, capacity, created_at, id];
 
@@ -354,6 +364,71 @@ export const editShowtime = async (req: Request, res: Response) => { //HAY QUE M
             return sendServerError(res, undefined, ip, 'Error al editar el espectáculo', endpoint);
         }
 
+    } catch (error) {
+        console.error('Error al procesar la solicitud:', error);
+        return sendServerError(res, undefined, ip, 'Error en el servidor', endpoint);
+    }
+};
+
+
+/**
+ * Delete one showtime by ID.
+ * @route DELETE /api/showtimes/{id}
+ * @group Showtime
+ * @param {number} id.path.required - ID of the showtime to delete
+ * @returns {object} 200 - Showtime deleted successfully
+ * @returns {object} 401 - Unauthorized, token not provided or invalid
+ * @returns {object} 404 - Movie not found
+ * @returns {object} 500 - Internal server error
+ * @security Bearer token
+ */
+export const deleteShowtime = async (req: Request, res: Response) => {
+    const endpoint = `${req.method} ${req.url}`;
+    const ip = req.headers['x-forwarded-for'] as string || req.socket.remoteAddress || '';
+
+    const token = req.headers['authorization']?.split(' ')[1];
+    if (!token) {
+        return sendUnauthorized(res, undefined, ip, 'Token no proporcionado', endpoint);
+    }
+
+    try {
+        const decoded = await verifyToken(token);
+
+        if (typeof decoded === 'object' && decoded !== null) {
+            if (decoded.role === 'user') {
+                return sendUnauthorized(res, undefined, ip, 'Solo los usuarios admin pueden eliminar espectáculos', endpoint);
+            }
+        } else {
+            console.error('Decodificación fallida, no es un objeto válido.');
+            return sendUnauthorized(res, undefined, ip, 'Token inválido', endpoint);
+        }
+
+        const { id } = req.params; // Extraer el ID de los parámetros de la ruta
+        if (!id) {
+            return sendBadParam(res, undefined, ip, 'ID del espectáculo no proporcionado', endpoint);
+        }
+
+        const checkMovieQuery = 'SELECT COUNT(*) as count FROM showtimes WHERE id = ?';
+        const [rows] = await db.promise().query<RowDataPacket[]>(checkMovieQuery, [id]);
+        if (rows[0].count <= 0) {
+            return sendConflict(res, undefined, ip, 'El espectáculo no existe', endpoint);
+        }
+
+        const deleteOneMovieQuery = 'DELETE FROM showtimes WHERE id = ?';
+
+        db.query<ResultSetHeader>(deleteOneMovieQuery, [id], (err, result) => {
+            if (err) {
+                console.error('Error al eliminar el espectáculo:', err);
+                return sendServerError(res, undefined, ip, 'Error en la base de datos', endpoint);
+            }
+
+            if (result.affectedRows === 0) {
+                return sendBadParam(res, undefined, ip, 'No se encontró el espectáculo para eliminar', endpoint);
+            }
+
+            return sendOk(res, undefined, ip, { message: 'Espectáculo eliminada correctamente' }, endpoint);
+        });
+        
     } catch (error) {
         console.error('Error al procesar la solicitud:', error);
         return sendServerError(res, undefined, ip, 'Error en el servidor', endpoint);
