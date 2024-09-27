@@ -126,3 +126,89 @@ export const addReservation = async (req: Request, res: Response) => {
         return sendServerError(res, undefined, ip, 'Error en el servidor', endpoint);
     }
 };
+
+
+/**
+ * Delete one reservation by ID.
+ * @route DELETE /api/reservations/{id}
+ * @group Movie
+ * @param {number} id.path.required - ID of the reservaton to delete
+ * @returns {object} 200 - Movie deleted successfully
+ * @returns {object} 401 - Unauthorized, token not provided or invalid
+ * @returns {object} 404 - Movie not found
+ * @returns {object} 500 - Internal server error
+ * @security Bearer token
+ */
+export const deleteReservation = async (req: Request, res: Response) => {
+    const endpoint = `${req.method} ${req.url}`;
+    const ip = req.headers['x-forwarded-for'] as string || req.socket.remoteAddress || '';
+
+    const token = req.headers['authorization']?.split(' ')[1];
+    if (!token) {
+        return sendUnauthorized(res, undefined, ip, 'Token no proporcionado', endpoint);
+    }
+
+    try {
+
+        const decoded = await verifyToken(token);
+
+        if (typeof decoded !== 'object' || decoded === null) {
+            console.error('Decodificación fallida, no es un objeto válido.');
+            return sendUnauthorized(res, undefined, ip, 'Token inválido', endpoint);
+        }
+
+        const user_id = decoded.id;
+
+        const { id } = req.params; // Extraer el ID de los parámetros de la ruta
+        if (!id) {
+            return sendBadParam(res, undefined, ip, 'ID de la reserva no proporcionado', endpoint);
+        }
+
+        //Verificar que el usuario que está intentando eliminar la reserva es el mismo que la creó
+        const checkUserQuery = 'SELECT user_id, seat_id FROM reservations WHERE id = ?';
+        const [rows] = await db.promise().query<RowDataPacket[]>(checkUserQuery, [id]);
+        if (rows.length === 0) {
+            return sendConflict(res, undefined, ip, 'La reserva no existe', endpoint);
+        }
+
+        if (user_id != rows[0].user_id) {
+            return sendConflict(res, undefined, ip, 'El usuario que intenta eliminar la reserva no es el mismo que el que hizo la reserva', endpoint);
+        }
+
+        const seat_id = rows[0].seat_id;
+
+        const deleteOneMovieQuery = 'DELETE FROM reservations WHERE id = ?';
+
+        db.query<ResultSetHeader>(deleteOneMovieQuery, [id], (err, result) => {
+            if (err) {
+                console.error('Error al eliminar la reserva:', err);
+                return sendServerError(res, undefined, ip, 'Error en la base de datos', endpoint);
+            }
+
+            if (result.affectedRows === 0) {
+                return sendBadParam(res, undefined, ip, 'No se encontró la reserva para eliminar', endpoint);
+            }
+
+            const deleteSeatQuery = 'DELETE FROM seats WHERE id = ?';
+
+            db.query<ResultSetHeader>(deleteSeatQuery, [seat_id], (err, result) => {
+                if (err) {
+                    console.error('Error al eliminar el asiento:', err);
+                    return sendServerError(res, undefined, ip, 'Error en la base de datos', endpoint);
+                }
+
+                if (result.affectedRows === 0) {
+                    return sendBadParam(res, undefined, ip, 'No se encontró el asiento para eliminar', endpoint);
+                }
+
+                // Solo enviar la respuesta después de que ambas eliminaciones hayan sido exitosas
+                return sendOk(res, undefined, ip, { message: 'Reserva y asiento eliminados correctamente' }, endpoint);
+            });
+        });
+
+
+    } catch (error) {
+        console.error('Error al procesar la solicitud:', error);
+        return sendServerError(res, undefined, ip, 'Error en el servidor', endpoint);
+    }
+};

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: localhost
--- Tiempo de generación: 26-09-2024 a las 14:29:42
+-- Tiempo de generación: 27-09-2024 a las 14:27:52
 -- Versión del servidor: 10.4.28-MariaDB
 -- Versión de PHP: 8.2.4
 
@@ -59,6 +59,13 @@ CREATE TABLE `reservations` (
   `reservation_date` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Volcado de datos para la tabla `reservations`
+--
+
+INSERT INTO `reservations` (`id`, `user_id`, `showtime_id`, `seat_id`, `reservation_date`) VALUES
+(14, 7, 23, 15, 1727439480);
+
 -- --------------------------------------------------------
 
 --
@@ -88,9 +95,15 @@ INSERT INTO `rooms` (`id`, `name`, `capacity`, `created_at`) VALUES
 CREATE TABLE `seats` (
   `id` int(11) NOT NULL,
   `showtime_id` int(11) NOT NULL,
-  `seat_number` varchar(10) NOT NULL,
-  `is_available` tinyint(1) DEFAULT 1
+  `seat_number` int(10) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `seats`
+--
+
+INSERT INTO `seats` (`id`, `showtime_id`, `seat_number`) VALUES
+(15, 23, 100);
 
 -- --------------------------------------------------------
 
@@ -114,8 +127,8 @@ CREATE TABLE `showtimes` (
 --
 
 INSERT INTO `showtimes` (`id`, `movie_id`, `room_id`, `showtime_init`, `showtime_end`, `available_seats`, `total_seats`, `created_at`) VALUES
-(22, 6, 1, 1900008640, 1900017280, 100, 100, 1727336978),
-(23, 6, 1, 1900017280, 1900025920, 100, 100, 1727337006);
+(23, 6, 1, 1900017280, 1900025920, 100, 100, 1727337006),
+(24, 6, 1, 1800030001, 1800038641, 100, 100, 1727432450);
 
 -- --------------------------------------------------------
 
@@ -202,7 +215,7 @@ ALTER TABLE `movies`
 -- AUTO_INCREMENT de la tabla `reservations`
 --
 ALTER TABLE `reservations`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
 --
 -- AUTO_INCREMENT de la tabla `rooms`
@@ -214,13 +227,13 @@ ALTER TABLE `rooms`
 -- AUTO_INCREMENT de la tabla `seats`
 --
 ALTER TABLE `seats`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- AUTO_INCREMENT de la tabla `showtimes`
 --
 ALTER TABLE `showtimes`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=25;
 
 --
 -- AUTO_INCREMENT de la tabla `users`

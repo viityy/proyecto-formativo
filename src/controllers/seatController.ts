@@ -5,13 +5,13 @@ import { sendOk, sendBadParam, sendUnauthorized, sendServerError, sendConflict }
 import { verifyToken } from '../utils/tokenDecode';
 
 /**
- * Get all movies by showtime.
+ * Get all reserved seats by showtime.
  * @route GET /api/seats/showtime/{showtime_id}
  * @group Seats
- * @param {number} showtime_id.path.required - genre of the movies to retrieve 
- * @returns {object} 200 - List of movies with id and title by genre
+ * @param {number} showtime_id.path.required - ID of the showtime to retrieve seats
+ * @returns {object} 200 - List of seats with id and number by showtime
  * @returns {object} 401 - Unauthorized, token not provided or invalid
- * @returns {object} 404 - Movie not found
+ * @returns {object} 404 - Showtime not found
  * @returns {object} 500 - Internal server error
  * @security Bearer token
  */
@@ -25,6 +25,7 @@ export const getShowtimeSeats = async (req: Request, res: Response) => {
     }
 
     try {
+        
         const decoded = await verifyToken(token);
 
         if (typeof decoded !== 'object' || decoded === null) {
@@ -45,7 +46,7 @@ export const getShowtimeSeats = async (req: Request, res: Response) => {
             return sendBadParam(res, undefined, ip, 'No existe el espectáculo', endpoint);
         }
 
-        const getShowtimeSeatsQuery = 'SELECT * FROM seats WHERE showtime_id = ?';
+        const getShowtimeSeatsQuery = 'SELECT id, seat_number FROM seats WHERE showtime_id = ?';
         const [rows] = await db.promise().query<RowDataPacket[]>(getShowtimeSeatsQuery, [showtime_id]);
 
         return sendOk(res, undefined, ip, { seats: rows }, endpoint);
