@@ -9,9 +9,8 @@ import { verifyToken } from '../utils/tokenDecode';
  * Add a new reservation.
  * @route POST /api/reservations/add
  * @group Showtime
- * @param {number} user_id.body.required - ID of the user
  * @param {number} showtime_id.body.required - ID of the showtime
- * @param {number} seat_id.body.required - ID of the seat
+ * @param {number} seat_number.body.required - Number of the seat
  * @returns {object} 200 - Showtime added successfully
  * @returns {object} 400 - Bad request
  * @returns {object} 409 - Conflict, showtime date conflict
@@ -20,7 +19,7 @@ import { verifyToken } from '../utils/tokenDecode';
  * @security Bearer token
  */
 export const addReservation = async (req: Request, res: Response) => {
-    const { user_id, showtime_id, seat_id } = req.body;
+    const { showtime_id, seat_number } = req.body;
     const endpoint = `${req.method} ${req.url}`;
     const ip = req.headers['x-forwarded-for'] as string || req.socket.remoteAddress || '';
 
@@ -31,97 +30,93 @@ export const addReservation = async (req: Request, res: Response) => {
     }
 
     try {
+
         const decoded = await verifyToken(token);
 
-        if (typeof decoded !== 'object' || decoded === null) {
+        if (typeof decoded === 'object' && decoded !== null) {
+            if (decoded.role === 'user') {
+                return sendUnauthorized(res, undefined, ip, 'Solo los usuarios admin pueden añadir películas', endpoint);
+            }
+        } else {
             console.error('Decodificación fallida, no es un objeto válido.');
             return sendUnauthorized(res, undefined, ip, 'Token inválido', endpoint);
         }
 
+        const user_id = decoded.id;
+
         // Validación de los parámetros requeridos
-        if (!user_id || !showtime_id || !seat_id) {
+        if (!showtime_id || !seat_number) {
             return sendBadParam(res, undefined, ip, 'Todos los campos son obligatorios', endpoint);
         }
 
+        // Verificación del espectáculo
+        const checkShowtimeQuery = 'SELECT COUNT(*) as count FROM showtimes WHERE id = ?';
+        const [showtimeCheckRows] = await db.promise().query<RowDataPacket[]>(checkShowtimeQuery, [showtime_id]);
+
+        if (showtimeCheckRows[0].count <= 0) {
+            return sendConflict(res, undefined, ip, 'El espectáculo no existe', endpoint);
+        }
+
+        const getShowtimeEndQuery = 'SELECT room_id, showtime_init, showtime_end FROM showtimes WHERE id = ?';
+        const [showtimeRows] = await db.promise().query<RowDataPacket[]>(getShowtimeEndQuery, [showtime_id]);
+
         const reservation_date = Math.floor(new Date().getTime() / 1000); // Timestamp actual
+        const showtime_init = showtimeRows[0].showtime_init;
+        const showtime_end = showtimeRows[0].showtime_end;
 
-        // Verificación del timestamp
-        if (reservation_date >= showtime_init) {
-            return sendConflict(res, undefined, ip, 'La película ya he empezado o terminado', endpoint);
+        const showtimeToCompare = ((showtime_end - showtime_init) / 2) + showtime_init
+
+        // Si la película ya va por la mitad que no se pueda hacer la reserva
+        if (reservation_date >= showtimeToCompare) {
+            return sendConflict(res, undefined, ip, 'La película ya está muy empezada', endpoint);
         }
 
-        // Verificación de la película
-        const checkMovieQuery = 'SELECT COUNT(*) as count FROM movies WHERE id = ?';
-        const [movieCheckRows] = await db.promise().query<RowDataPacket[]>(checkMovieQuery, [movie_id]);
+        // Verificación de que el asiento seleccionado no exceda el rango de la sala
+        const getRoomQuery = 'SELECT room_id FROM showtimes WHERE id = ?';
+        const [roomRows] = await db.promise().query<RowDataPacket[]>(getRoomQuery, [showtime_id]);
 
-        if (movieCheckRows[0].count <= 0) {
-            return sendConflict(res, undefined, ip, 'La película no existe', endpoint);
+        if (roomRows[0].count > 0) {
+            return sendConflict(res, undefined, ip, 'El espectáculo no existe', endpoint);
+        }
+        const getCapacityQuery = 'SELECT capacity FROM rooms WHERE id = ?';
+        const [capacityRows] = await db.promise().query<RowDataPacket[]>(getCapacityQuery, [roomRows[0].room_id]);
+
+        if (seat_number > capacityRows[0].capacity || seat_number <= 0) {
+            return sendConflict(res, undefined, ip, 'El asiento seleccionado está fuera de rango', endpoint);
         }
 
-        // Verificación de la sala (room) y obtención de la capacidad
-        const getTotalSeatsQuery = 'SELECT capacity FROM rooms WHERE id = ?';
-        const [totalSeatsRows] = await db.promise().query<RowDataPacket[]>(getTotalSeatsQuery, [room_id]);
+        // Verificación de que el asiento no esté ocupado
+        const getSeatCheckQuery = 'SELECT COUNT(*) as count FROM seats WHERE showtime_id = ? and seat_number = ?';
+        const [seatRows] = await db.promise().query<RowDataPacket[]>(getSeatCheckQuery, [showtime_id, seat_number]);
 
-        if (totalSeatsRows.length === 0) {
-            return sendBadParam(res, undefined, ip, 'No se encontró la sala con el ID proporcionado', endpoint);
+        if (seatRows[0].count > 0) {
+            return sendConflict(res, undefined, ip, 'El asiento está ocupado', endpoint);
         }
 
-        // Obtención de la duración de la película para calcular la duración del espectáculo
-        const getMovieTimeQuery = 'SELECT running_time FROM movies WHERE id = ?';
-        const [movieRows] = await db.promise().query<RowDataPacket[]>(getMovieTimeQuery, [movie_id]);
+        const insertQuery = 'INSERT INTO seats (showtime_id, seat_number) VALUES (?, ?)';
+        const [insertResult] = await db.promise().query<ResultSetHeader>(insertQuery, [showtime_id, seat_number]);
 
-        if (movieRows.length === 0) {
-            return sendBadParam(res, undefined, ip, 'No se encontró la película con el ID proporcionado', endpoint);
+        if (insertResult.affectedRows <= 0) {
+            return sendServerError(res, undefined, ip, 'Error al reservar el asiento', endpoint);
         }
 
-        const capacity = totalSeatsRows[0].capacity;
-        const running_time = movieRows[0].running_time;
-        const showtime_end = showtime_init + running_time + 1800; //sumamos 30 minutos (en segundos)
+        const selectIdQuery = 'SELECT id FROM seats WHERE showtime_id = ? and seat_number = ?';
+        const [idResult] = await db.promise().query<RowDataPacket[]>(selectIdQuery, [showtime_id, seat_number]);
 
-        const getShowtimesQuery = 'SELECT * FROM showtimes WHERE room_id = ?';
-        const [showtimesRows] = await db.promise().query<RowDataPacket[]>(getShowtimesQuery, [room_id]);
+        const seat_id = idResult[0].id;
 
-        // Verifica si hay solapamiento entre los espectáculos.
-        if (showtimesRows.length > 0) {
-            for (let i = 0; i < showtimesRows.length; i++) {
-                const existingShowtimeInit = showtimesRows[i].showtime_init;
-                const existingShowtimeEnd = showtimesRows[i].showtime_end;
+        // Inserción de la reserva en la base de datos
+        const insertReservationQuery = `
+            INSERT INTO reservations (user_id, showtime_id, seat_id, reservation_date) 
+            VALUES (?, ?, ?, ?)`;
 
-                let conflictType = null;
+        const reservationValues = [user_id, showtime_id, seat_id, reservation_date];
 
-                // Determinamos el tipo de conflicto
-                if (showtime_init >= existingShowtimeInit && showtime_init < existingShowtimeEnd) {
-                    conflictType = 'startOverlap'; // Nuevo inicio dentro de un espectáculo existente
-                } else if (showtime_end > existingShowtimeInit && showtime_end <= existingShowtimeEnd) {
-                    conflictType = 'endOverlap'; // Nuevo fin dentro de un espectáculo existente
-                } else if (showtime_init <= existingShowtimeInit && showtime_end >= existingShowtimeEnd) {
-                    conflictType = 'fullOverlap'; // Nuevo espectáculo abarca a uno existente
-                }
-
-                // Verificamos el tipo de conflicto y enviamos el mensaje adecuado
-                switch (conflictType) {
-                    case 'startOverlap':
-                        return sendConflict(res, undefined, ip, `El inicio del nuevo espectáculo se solapa con el espectáculo existente (ID: ${showtimesRows[i].id})`, endpoint);
-                    case 'endOverlap':
-                        return sendConflict(res, undefined, ip, `El fin del nuevo espectáculo se solapa con el espectáculo existente (ID: ${showtimesRows[i].id})`, endpoint);
-                    case 'fullOverlap':
-                        return sendConflict(res, undefined, ip, `El nuevo espectáculo abarca completamente el espectáculo existente (ID: ${showtimesRows[i].id})`, endpoint);
-                }
-            }
-        }
-
-        // Preparación e inserción del nuevo showtime en la base de datos
-        const insertShowtimeQuery = `
-            INSERT INTO showtimes (movie_id, room_id, showtime_init, showtime_end ,available_seats, total_seats, created_at) 
-            VALUES (?, ?, ?, ?, ?, ?, ?)`;
-
-        const showtimeValues = [movie_id, room_id, showtime_init, showtime_end, capacity, capacity, created_at];
-
-        const [result] = await db.promise().query<ResultSetHeader>(insertShowtimeQuery, showtimeValues);
+        const [result] = await db.promise().query<ResultSetHeader>(insertReservationQuery, reservationValues);
 
         // Verificar si el showtime fue añadido correctamente
         if (result.affectedRows > 0) {
-            return sendOk(res, undefined, ip, { message: 'Espectáculo añadido correctamente' }, endpoint);
+            return sendOk(res, undefined, ip, { message: 'Reserva hecha correctamente' }, endpoint);
         } else {
             return sendServerError(res, undefined, ip, 'Error al añadir el espectáculo', endpoint);
         }

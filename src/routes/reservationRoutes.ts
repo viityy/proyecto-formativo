@@ -1,10 +1,10 @@
 import { Router } from 'express';
-//import {  } from '../controllers/reservationController';
+import { addReservation } from '../controllers/reservationController';
 //import { addShowtime, getAllShowtimes, getOneShowtime, editShowtime, deleteShowtime } from '../controllers/reservationController';
 
 const router = Router();
 
-//router.post('/add', addShowtime);
+router.post('/add', addReservation);
 //router.get('', getAllShowtimes);
 //router.get('/:id', getOneShowtime);
 //router.patch('/:id', editShowtime);
