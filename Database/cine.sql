@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: localhost
--- Tiempo de generación: 27-09-2024 a las 14:27:52
+-- Tiempo de generación: 30-09-2024 a las 14:36:18
 -- Versión del servidor: 10.4.28-MariaDB
 -- Versión de PHP: 8.2.4
 
@@ -64,7 +64,7 @@ CREATE TABLE `reservations` (
 --
 
 INSERT INTO `reservations` (`id`, `user_id`, `showtime_id`, `seat_id`, `reservation_date`) VALUES
-(14, 7, 23, 15, 1727439480);
+(18, 7, 23, 19, 1727694103);
 
 -- --------------------------------------------------------
 
@@ -84,7 +84,8 @@ CREATE TABLE `rooms` (
 --
 
 INSERT INTO `rooms` (`id`, `name`, `capacity`, `created_at`) VALUES
-(1, 'Sala Principal', 100, 1727251588);
+(1, 'Sala Principal', 100, 1727251588),
+(2, 'Sala 1', 50, 1727685548);
 
 -- --------------------------------------------------------
 
@@ -103,7 +104,7 @@ CREATE TABLE `seats` (
 --
 
 INSERT INTO `seats` (`id`, `showtime_id`, `seat_number`) VALUES
-(15, 23, 100);
+(19, 23, 100);
 
 -- --------------------------------------------------------
 
@@ -127,7 +128,7 @@ CREATE TABLE `showtimes` (
 --
 
 INSERT INTO `showtimes` (`id`, `movie_id`, `room_id`, `showtime_init`, `showtime_end`, `available_seats`, `total_seats`, `created_at`) VALUES
-(23, 6, 1, 1900017280, 1900025920, 100, 100, 1727337006),
+(23, 6, 1, 1900017280, 1900025920, 99, 100, 1727337006),
 (24, 6, 1, 1800030001, 1800038641, 100, 100, 1727432450);
 
 -- --------------------------------------------------------
@@ -215,19 +216,19 @@ ALTER TABLE `movies`
 -- AUTO_INCREMENT de la tabla `reservations`
 --
 ALTER TABLE `reservations`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
 
 --
 -- AUTO_INCREMENT de la tabla `rooms`
 --
 ALTER TABLE `rooms`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT de la tabla `seats`
 --
 ALTER TABLE `seats`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
 
 --
 -- AUTO_INCREMENT de la tabla `showtimes`

@@ -4,6 +4,7 @@ import movieRoutes from './routes/movieRoutes';
 import showtimeRoutes from './routes/showtimeRoutes';
 import reservationsRoutes from './routes/reservationRoutes';
 import seatRoutes from './routes/seatRoutes';
+import roomRoutes from './routes/roomRoutes';
 import loggerMiddleware from './middleware/loggerMiddleware';
 
 const app = express();
@@ -19,6 +20,8 @@ app.use('/api/movies', movieRoutes);
 app.use('/api/showtimes', showtimeRoutes);
 app.use('/api/reservations', reservationsRoutes);
 app.use('/api/seats', seatRoutes);
+app.use('/api/rooms', roomRoutes);
+
 
 // Iniciar el servidor
 app.listen(PORT, () => {
